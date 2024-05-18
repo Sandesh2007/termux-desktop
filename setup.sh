@@ -299,9 +299,10 @@ stop_vnc() {
 complete() {
 	banner
 	echo -e ${GREEN}"[*] Setup Complete."
-	echo -e ${ORANGE}"[*] For VNC Server, You can start/stop using the commands below :"
-	echo -e ${BLUE}"\n\n# To Start VNC Server \n~ \$ vncserver -geometry 1280x720 -depth 24"
-	echo -e ${BLUE}"\n# To Stop VNC Server \n~ \$ vncserver -kill :1\n\n"
+	echo -e ${ORANGE}"[*] To start the X11 server and use the GUI, follow the instructions below:"
+	echo -e ${BLUE}"\n\n# To Start X11 Server \n~ \$ termux-x11 :0 &"
+	echo -e ${BLUE}"\n# Then, in another Termux session, start your window manager or desktop environment, e.g., \n~ \$ openbox-session\n\n"
+
 	reset_color
 	exit 0
 }
