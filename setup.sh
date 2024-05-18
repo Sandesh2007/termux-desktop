@@ -5,6 +5,8 @@
 ## Github  : @adi1090x
 ## Twitter : @adi1090x
 
+## Modified by Sandesh2007
+
 ## Termux Desktop : Setup GUI in Termux 
 
 ## ANSI Colors (FG & BG)
@@ -41,7 +43,7 @@ banner() {
 		${RED}│${GREEN}░░░░█░░█▀▀░█▀▄░█░█░█░█░▄▀▄░░░█░█░█▀▀░▀▀█░█▀▄░░█░░█░█░█▀▀░░${RED}│
 		${RED}│${GREEN}░░░░▀░░▀▀▀░▀░▀░▀░▀░▀▀▀░▀░▀░░░▀▀░░▀▀▀░▀▀▀░▀░▀░░▀░░▀▀▀░▀░░░░${RED}│
 		${RED}└──────────────────────────────────────────────────────────┘
-		${BLUE}By : Aditya Shakya // @adi1090x
+		${BLUE}By : Aditya Shakya || Modified by : Sandesh2007 
 	EOF
 }
 
@@ -56,19 +58,19 @@ usage() {
 _pkgs=(bc bmon calc calcurse curl dbus desktop-file-utils elinks feh fontconfig-utils fsmon \
 		geany git gtk2 gtk3 htop imagemagick jq leafpad man mpc mpd mutt ncmpcpp \
 		ncurses-utils neofetch netsurf obconf openbox openssl-tool polybar ranger rofi \
-		startup-notification termux-api thunar tigervnc vim wget xarchiver xbitmaps xcompmgr \
+		startup-notification termux-api thunar  x11-repo vim wget xarchiver xbitmaps xcompmgr \
 		xfce4-settings xfce4-terminal xmlstarlet xorg-font-util xorg-xrdb zsh)
 
 setup_base() {
 	echo -e ${RED}"\n[*] Installing Termux Desktop..."
 	echo -e ${CYAN}"\n[*] Updating Termux Base... \n"
-	{ reset_color; pkg autoclean; pkg update -y; pkg upgrade -y; }
+	{ reset_color; apt autoclean; apt update -y; apt upgrade -y; }
 	echo -e ${CYAN}"\n[*] Enabling Termux X11-repo... \n"
-	{ reset_color; pkg install -y x11-repo; }
+	{ reset_color; apt install -y x11-repo; }
 	echo -e ${CYAN}"\n[*] Installing required programs... \n"
 	for package in "${_pkgs[@]}"; do
-		{ reset_color; pkg install -y "$package"; }
-		_ipkg=$(pkg list-installed $package 2>/dev/null | tail -n 1)
+		{ reset_color; apt install -y "$package"; }
+		_ipkg=$(apt list --installed "$package" 2>/dev/null | tail -n 1)
 		_checkpkg=${_ipkg%/*}
 		if [[ "$_checkpkg" == "$package" ]]; then
 			echo -e ${GREEN}"\n[*] Package $package installed successfully.\n"
@@ -149,229 +151,188 @@ setup_omz() {
 
 	# configuring termux
 	echo -e ${CYAN}"\n[*] Configuring Termux..."
-	if [[ ! -d "$HOME/.termux" ]]; then
-		mkdir $HOME/.termux
+	if [[ ! -d $HOME/.termux ]]; then
+		mkdir -p $HOME/.termux
 	fi
-	# copy font
-	cp $(pwd)/files/.fonts/icons/dejavu-nerd-font.ttf $HOME/.termux/font.ttf
-	# color-scheme
-	cat > $HOME/.termux/colors.properties <<- _EOF_
-		background 		: #263238
-		foreground 		: #eceff1
-
-		color0  			: #263238
-		color8  			: #37474f
-		color1  			: #ff9800
-		color9  			: #ffa74d
-		color2  			: #8bc34a
-		color10 			: #9ccc65
-		color3  			: #ffc107
-		color11 			: #ffa000
-		color4  			: #03a9f4
-		color12 			: #81d4fa
-		color5  			: #e91e63
-		color13 			: #ad1457
-		color6  			: #009688
-		color14 			: #26a69a
-		color7  			: #cfd8dc
-		color15 			: #eceff1
-	_EOF_
-	# button config
 	cat > $HOME/.termux/termux.properties <<- _EOF_
-		extra-keys = [ \\
-		 ['ESC','|', '/', '~','HOME','UP','END'], \\
-		 ['CTRL', 'TAB', '=', '-','LEFT','DOWN','RIGHT'] \\
-		]	
+		extra-keys = [['ESC','|','/','HOME','UP','END','PGUP','DEL'],['TAB','CTRL','ALT','LEFT','DOWN','RIGHT','PGDN','BKSP']]
 	_EOF_
-	# change shell and reload configs
-	{ chsh -s zsh; } \
-	&& { echo -e "${GREEN}Changed shell to /bin/zsh"; } \
-	|| { echo -e "${MAGENTA}Failed to change shell. Please run $ chsh -s zsh"; }
-
-	{ termux-reload-settings; } \
-	&& { echo -e "${GREEN}Settings reloaded successfully"; } \
-	|| { echo -e "${MAGENTA}Failed to run $ termux-reload-settings. Restart app after installation is complete"; }
-
-	{ termux-setup-storage; } \
-	&& { echo -e "${GREEN}Ran termux-setup-storage successfully, you should now have a ~/storage folder"; } \
-	|| { echo -e "${MAGENTA}Failed to execute $ termux-setup-storage"; }
+	reset_color
 }
 
-## Configuration
-setup_config() {
-	# ensure /etc/machine-id exists for xfce4-settings
-	# ref: issue #110 - https://github.com/adi1090x/termux-desktop/issues/110
-	#
-	# Check if ${PREFIX}/etc/machine-id exists, if not, generate it
-	if [[ $(find ${PREFIX}/etc/ -type f -name machine-id | wc -l) == 0 ]]; then
-		dbus-uuidgen --ensure=/data/data/com.termux/files/usr/etc/machine-id
-		machineUUID=$(cat ${PREFIX}/etc/machine-id)
-		echo -e ${CYAN}"\n[*] Generated UUID: ${machineUUID}"
-		reset_color
-	fi
+## Configure Openbox and Xorg
+config_xorg() {
+	echo -e ${RED}"\n[*] Setting up and configuring Xorg..."
+	echo -e ${CYAN}"\n[*] Configuring Openbox..."
+	# openbox configuration
+	mkdir -p $HOME/.config/openbox
+	cat > $HOME/.config/openbox/autostart <<- _EOF_
+		## Disable any beep
+		xset -b
 
-	# backup
-	configs=($(ls -A $(pwd)/files))
-	echo -e ${RED}"\n[*] Backing up your files and dirs... "
-	for file in "${configs[@]}"; do
-		echo -e ${CYAN}"\n[*] Backing up $file..."
-		if [[ -f "$HOME/$file" || -d "$HOME/$file" ]]; then
-			{ reset_color; mv -u ${HOME}/${file}{,.old}; }
-		else
-			echo -e ${MAGENTA}"\n[!] $file Doesn't Exist."			
-		fi
-	done
+		## Background
+		feh --bg-fill --randomize \$HOME/.wallpapers/*
+
+		## Polybar
+		polybar -r example &
+		
+		## Disable any beep
+		xset -b
+	_EOF_
+
+	cat > $HOME/.config/openbox/menu.xml <<- _EOF_
+		<?xml version="1.0" encoding="UTF-8"?>
+		<!DOCTYPE openbox_menu SYSTEM "http://openbox.org/3.4/menu.dtd">
+		<openbox_menu>
+			<menu id="root-menu" label="Openbox 3">
+				<item label="Terminal">
+					<action name="Execute">
+						<command>xfce4-terminal</command>
+					</action>
+				</item>
+				<item label="Browser">
+					<action name="Execute">
+						<command>netsurf</command>
+					</action>
+				</item>
+				<separator/>
+				<item label="Edit config">
+					<action name="Execute">
+						<command>geany ~/.config/openbox/menu.xml</command>
+					</action>
+				</item>
+				<separator/>
+				<item label="Exit">
+					<action name="Execute">
+						<command>pkill -KILL -u $(whoami)</command>
+					</action>
+				</item>
+			</menu>
+		</openbox_menu>
+	_EOF_
 	
-	# Copy config files
-	echo -e ${RED}"\n[*] Copiyng config files... "
-	for _config in "${configs[@]}"; do
-		echo -e ${CYAN}"\n[*] Copiyng $_config..."
-		{ reset_color; cp -rf $(pwd)/files/$_config $HOME; }
-	done
-	if [[ ! -d "$HOME/Desktop" ]]; then
-		mkdir $HOME/Desktop
-	fi
-}
+	mkdir -p $HOME/.config/polybar
+	cat > $HOME/.config/polybar/config <<- _EOF_
+		[colors]
+		background = #2E3440
+		background-alt = #353C4A
+		foreground = #D8DEE9
+		foreground-alt = #B9BBBF
 
-## Setup VNC Server
-setup_vnc() {
-	# backup old dir
-	if [[ -d "$HOME/.vnc" ]]; then
-		mv $HOME/.vnc{,.old}
-	fi
-	echo -e ${RED}"\n[*] Setting up VNC Server..."
-	{ reset_color; vncserver -localhost; }
-	sed -i -e 's/# geometry=.*/geometry=1366x768/g' $HOME/.vnc/config
+		[bar/example]
+		width = 100%
+		height = 27
+		padding-right = 2%
+		padding-left = 2%
+		background = \${colors.background}
+		foreground = \${colors.foreground}
+		bottom = false
+
+		module-margin-left = 1
+		module-margin-right = 2
+
+		font-0 = "FiraCode Nerd Font:size=10;2"
+		font-1 = "FontAwesome:size=12;2"
+		font-2 = "NotoSans-Regular:size=10;2"
+
+		[modules-left]
+		modules-left = date
+
+		[module/date]
+		type = internal/date
+		date = %Y-%m-%d %H:%M:%S
+		interval = 5
+
+		background = \${colors.background}
+		foreground = \${colors.foreground}
+	_EOF_
+
+	echo -e ${CYAN}"\n[*] Configuring Xorg..."
+	mkdir -p $HOME/.vnc
 	cat > $HOME/.vnc/xstartup <<- _EOF_
-		#!/data/data/com.termux/files/usr/bin/bash
-		## This file is executed during VNC server
-		## startup.
+		#!/data/data/com.termux/files/usr/bin/sh
+		## Xvnc startup script
 
-		# Launch Openbox Window Manager.
+		## Set Wallpaper
+		feh --bg-fill --randomize \$HOME/.wallpapers/* &
+
+		## xset configs
+		xsetroot -cursor_name left_ptr
+		xset -b
+
+		## Openbox Startup
 		openbox-session &
 	_EOF_
-        chmod u+rx $HOME/.vnc/xstartup
-	if [[ $(pidof Xvnc) ]]; then
-		    echo -e ${ORANGE}"[*] Server Is Running..."
-		    { reset_color; vncserver -list; }
+	chmod +x $HOME/.vnc/xstartup
+
+	# Download Wallpaper
+	echo -e ${CYAN}"\n[*] Downloading Wallpapers..."
+	if [[ ! -d $HOME/.wallpapers ]]; then
+		mkdir -p $HOME/.wallpapers
 	fi
+	if [[ ! -f $HOME/.wallpapers/.wallpaper1.jpg ]]; then
+		{ reset_color; curl -L https://github.com/adi1090x/files/raw/master/wallpapers/blackarch1.jpg -o $HOME/.wallpapers/.wallpaper1.jpg; }
+		{ reset_color; curl -L https://github.com/adi1090x/files/raw/master/wallpapers/blackarch2.jpg -o $HOME/.wallpapers/.wallpaper2.jpg; }
+	else
+		echo -e ${MAGENTA}"\n[!] Wallpapers Already Exists."
+	fi
+	reset_color
 }
 
-## Create Launch Script
-setup_launcher() {
-	file="$HOME/.local/bin/startdesktop"
-	if [[ -f "$file" ]]; then
-		rm -rf "$file"
-	fi
-	echo -e ${RED}"\n[*] Creating Launcher Script... \n"
-	{ reset_color; touch $file; chmod +x $file; }
-	cat > $file <<- _EOF_
-		#!/data/data/com.termux/files/usr/bin/bash
-
-		# Export Display
-		export DISPLAY=":1"
-
-		# Start VNC Server
-		if [[ \$(pidof Xvnc) ]]; then
-		    echo -e "\\n[!] Server Already Running."
-		    { vncserver -list; echo; }
-		    read -p "Kill VNC Server? (Y/N) : "
-		    if [[ "\$REPLY" == "Y" || "\$REPLY" == "y" ]]; then
-		        { killall Xvnc; echo; }
-		    else
-		        echo
-		    fi
-		else
-		    echo -e "\\n[*] Starting VNC Server..."
-		    vncserver
-		fi
-	_EOF_
-	if [[ -f "$file" ]]; then
-		echo -e ${GREEN}"[*] Script ${ORANGE}$file ${GREEN}created successfully."
-	fi
-	
-	# defining PATH reference for ~/.local/bin in /etc/profile
-	# to avoid issues with launching the whole script, when zsh / oh-my-zsh fails to install
-	#   ref: https://github.com/adi1090x/termux-desktop/issues/99
-	echo "export PATH=${PATH}:${HOME}/.local/bin" >> ${PREFIX}/etc/profile
-	
-	if [[ $(grep "export PATH.*/home/.local/bin" ${PREFIX}/etc/profile | wc -l) > 0 ]]; then
-		echo -e ${GREEN}"[*] \$PATH reference ${ORANGE}~/.local/bin ${GREEN}added to /etc/profile successfully."
-	fi
+## Start VNC Server
+start_vnc() {
+	echo -e ${RED}"\n[*] Starting VNC Server..."
+	vncserver -geometry 1280x720 -depth 24
+	echo -e ${GREEN}"\n[+] VNC Server Started."
+	reset_color
 }
 
-## Finish Installation
-post_msg() {
-	echo -e ${GREEN}"\n[*] ${RED}Termux Desktop ${GREEN}Installed Successfully.\n"
-	cat <<- _MSG_
-		[-] Restart termux and enter ${ORANGE}startdesktop ${GREEN}command to start the VNC server.
-		[-] In VNC client, enter ${ORANGE}127.0.0.1:5901 ${GREEN}as Address and Password you created to connect.	
-		[-] To connect via PC over Wifi or Hotspot, use it's IP, ie: ${ORANGE}192.168.43.1:5901 ${GREEN}to connect. Also, use TigerVNC client.	
-		[-] Make sure you enter the correct port. ie: If server is running on ${ORANGE}Display :2 ${GREEN}then port is ${ORANGE}5902 ${GREEN}and so on.
-		  
-	_MSG_
-	{ reset_color; exit 0; }
-	
-	# replace the current session's shell with zsh
-	exec ${PREFIX}/bin/zsh
+## Terminate VNC Server
+stop_vnc() {
+	echo -e ${RED}"\n[*] Stopping VNC Server..."
+	vncserver -kill :1
+	echo -e ${GREEN}"\n[+] VNC Server Stopped."
+	reset_color
 }
 
-## Install Termux Desktop
-install_td() {
+## Setup complete
+complete() {
 	banner
-	setup_base
-	setup_omz
-	setup_config
-	setup_vnc
-	setup_launcher
-	post_msg
+	echo -e ${GREEN}"[*] Setup Complete."
+	echo -e ${ORANGE}"[*] For VNC Server, You can start/stop using the commands below :"
+	echo -e ${BLUE}"\n\n# To Start VNC Server \n~ \$ vncserver -geometry 1280x720 -depth 24"
+	echo -e ${BLUE}"\n# To Stop VNC Server \n~ \$ vncserver -kill :1\n\n"
+	reset_color
+	exit 0
 }
 
-## Uninstall Termux Desktop
-uninstall_td() {
+## User Arguments
+user_args() {
 	banner
-	# remove pkgs
-	echo -e ${RED}"\n[*] Unistalling Termux Desktop..."
-	echo -e ${CYAN}"\n[*] Removing Packages..."
-	for package in "${_pkgs[@]}"; do
-		echo -e ${GREEN}"\n[*] Removing Packages ${ORANGE}$package \n"
-		{ reset_color; apt-get remove -y --purge --autoremove $package; }
-	done
-	
-	# delete files
-	echo -e ${CYAN}"\n[*] Deleting config files...\n"
-	_homefiles=(.fehbg .icons .mpd .ncmpcpp .fonts .gtkrc-2.0 .mutt .themes .vnc Music)
-	_configfiles=(Thunar geany  gtk-3.0 leafpad netsurf openbox polybar ranger rofi xfce4)
-	_localfiles=(bin lib 'share/backgrounds' 'share/pixmaps')
-	for i in "${_homefiles[@]}"; do
-		if [[ -f "$HOME/$i" || -d "$HOME/$i" ]]; then
-			{ reset_color; rm -rf $HOME/$i; }
-		else
-			echo -e ${MAGENTA}"\n[!] $file Doesn't Exist.\n"
-		fi
-	done
-	for j in "${_configfiles[@]}"; do
-		if [[ -f "$HOME/.config/$j" || -d "$HOME/.config/$j" ]]; then
-			{ reset_color; rm -rf $HOME/.config/$j; }
-		else
-			echo -e ${MAGENTA}"\n[!] $file Doesn't Exist.\n"			
-		fi
-	done
-	for k in "${_localfiles[@]}"; do
-		if [[ -f "$HOME/.local/$k" || -d "$HOME/.local/$k" ]]; then
-			{ reset_color; rm -rf $HOME/.local/$k; }
-		else
-			echo -e ${MAGENTA}"\n[!] $file Doesn't Exist.\n"			
-		fi
-	done
-	echo -e ${RED}"\n[*] Termux Desktop Unistalled Successfully.\n"
+	case "$1" in
+		--install)
+			setup_base
+			setup_omz
+			config_xorg
+			complete
+			;;
+		--uninstall)
+			echo -e ${RED}"[*] Uninstalling Termux Desktop..."
+			{ reset_color; apt remove --purge -y ${_pkgs[@]}; }
+			echo -e ${GREEN}"[*] Termux Desktop Uninstalled."
+			reset_color
+			exit 0
+			;;
+		*)
+			usage
+			exit 1
+			;;
+	esac
 }
 
 ## Main
-if [[ "$1" == "--install" ]]; then
-	install_td
-elif [[ "$1" == "--uninstall" ]]; then
-	uninstall_td
-else
-	{ usage; reset_color; exit 0; }
-fi
+main() {
+	user_args "$@"
+}
+
+main "$@"
